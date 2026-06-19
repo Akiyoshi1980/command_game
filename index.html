@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Unix Command Trainer</title>
 <style>
   :root {
@@ -127,6 +128,28 @@
     margin-top: 14px;
     font-size: 0.75rem;
     color: var(--dim);
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 10px; }
+    h1 { font-size: 1.1rem; }
+    .sub { font-size: 0.75rem; margin-bottom: 10px; }
+    .hud {
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 0.8rem;
+      padding: 8px 10px;
+    }
+    .terminal { padding: 12px; min-height: 0; }
+    .task { font-size: 0.95rem; margin-bottom: 10px; }
+    input#answer { font-size: 1rem; min-width: 0; }
+    button {
+      width: 100%;
+      margin-right: 0;
+      margin-top: 8px;
+      padding: 10px 12px;
+    }
+    .output, .explain { font-size: 0.8rem; }
   }
 </style>
 </head>
