@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Unix Command Trainer</title>
+<style>
+  :root {
+    --bg: #0c0f0a;
+    --panel: #11150e;
+    --green: #39ff6a;
+    --dim: #1f8f3f;
+    --red: #ff5555;
+    --text: #d7ffd9;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Consolas", "Courier New", monospace;
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+  }
+  .wrap { width: 100%; max-width: 760px; }
+  h1 {
+    color: var(--green);
+    font-size: 1.4rem;
+    text-shadow: 0 0 6px var(--green);
+    margin-bottom: 4px;
+  }
+  .sub { color: var(--dim); font-size: 0.85rem; margin-bottom: 16px; }
+  .hud {
+    display: flex;
+    justify-content: space-between;
+    background: var(--panel);
+    border: 1px solid var(--dim);
+    padding: 8px 14px;
+    border-radius: 6px;
+    margin-bottom: 14px;
+    font-size: 0.9rem;
+  }
+  .terminal {
+    background: var(--panel);
+    border: 1px solid var(--dim);
+    border-radius: 6px;
+    padding: 18px;
+    min-height: 260px;
+  }
+  .task {
+    color: #fff;
+    margin-bottom: 14px;
+    line-height: 1.6;
+  }
+  .task .badge {
+    display: inline-block;
+    background: var(--dim);
+    color: #000;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-right: 8px;
+  }
+  .promptline {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .promptline span { color: var(--green); }
+  input#answer {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 1rem;
+    outline: none;
+  }
+  .feedback { min-height: 24px; margin-top: 10px; font-size: 0.9rem; }
+  .feedback.ok { color: var(--green); }
+  .feedback.bad { color: var(--red); }
+  .hint { color: var(--dim); font-size: 0.8rem; margin-top: 4px; }
+  .output {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: #060805;
+    border-left: 3px solid var(--dim);
+    color: #9fd9a8;
+    font-size: 0.85rem;
+    white-space: pre-wrap;
+    display: none;
+  }
+  .output .label {
+    display: block;
+    color: var(--dim);
+    font-size: 0.7rem;
+    margin-bottom: 4px;
+  }
+  .explain {
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: #0c1410;
+    border-left: 3px solid #4ab0ff;
+    color: #cfe9ff;
+    font-size: 0.85rem;
+    display: none;
+  }
+  .explain .label {
+    display: block;
+    color: #4ab0ff;
+    font-size: 0.7rem;
+    margin-bottom: 4px;
+  }
+  button {
+    background: var(--dim);
+    border: none;
+    color: #000;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 12px;
+    margin-right: 8px;
+  }
+  button:hover { background: var(--green); }
+  .footer {
+    margin-top: 14px;
+    font-size: 0.75rem;
+    color: var(--dim);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>$ Unix Command Trainer</h1>
+  <div class="sub">出題内容に合うUnixコマンドを入力してEnter</div>
+
+  <div class="hud">
+    <span>レベル: <span id="level">1</span></span>
+    <span>正解数: <span id="score">0</span></span>
+    <span>ハイスコア: <span id="high">0</span></span>
+  </div>
+
+  <div class="terminal">
+    <div class="task"><span class="badge" id="catLabel">basic</span><span id="taskText">読み込み中...</span></div>
+    <div class="promptline">
+      <span>$</span>
+      <input id="answer" type="text" autocomplete="off" spellcheck="false" placeholder="コマンドを入力...">
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="output" id="output"><span class="label">実行結果(模擬)</span><span id="outputText"></span></div>
+    <div class="explain" id="explain"><span class="label">コマンドの意味</span><span id="explainText"></span></div>
+    <div class="hint" id="hint"></div>
+    <div>
+      <button id="hintBtn">ヒント</button>
+      <button id="skipBtn">スキップ</button>
+      <button id="nextBtn" style="display:none;">次へ &gt;&gt;</button>
+    </div>
+  </div>
+
+  <div class="footer">Enterで判定 / 完全一致でなくても代表的な書き方なら正解になります</div>
+</div>
+
+<script>
+const QUESTIONS = [
+  { task: "カレントディレクトリのファイル一覧を表示する", answers: ["ls"], hint: "list", level: 1,
+    output: "a.txt  b.txt  docs  notes.txt",
+    explain: "list の略。指定ディレクトリ(省略時はカレント)の内容を一覧表示する。" },
+  { task: "現在のディレクトリパスを表示する", answers: ["pwd"], hint: "print working directory", level: 1,
+    output: "/home/user/projects",
+    explain: "print working directory の略。今いるディレクトリの絶対パスを表示する。" },
+  { task: "'projects' という名前のディレクトリに移動する", answers: ["cd projects"], hint: "change directory", level: 1,
+    output: "(出力なし。プロンプトが /home/user/projects に変わる)",
+    explain: "change directory の略。引数で指定したディレクトリにカレントディレクトリを移動する。" },
+  { task: "'docs' という名前の新しいディレクトリを作成する", answers: ["mkdir docs"], hint: "make directory", level: 1,
+    output: "(出力なし。'docs' ディレクトリが作成される)",
+    explain: "make directory の略。指定した名前のディレクトリを新規作成する。" },
+  { task: "'note.txt' というファイルの内容を表示する", answers: ["cat note.txt"], hint: "concatenate", level: 1,
+    output: "Hello, this is note.txt",
+    explain: "concatenate(連結する)の略。本来は複数ファイルを連結して出力するコマンドで、1ファイルだけ渡すと内容をそのまま表示する。" },
+  { task: "'a.txt' を 'b.txt' という名前にコピーする", answers: ["cp a.txt b.txt"], hint: "copy", level: 1,
+    output: "(出力なし。'b.txt' が新規作成される)",
+    explain: "copy の略。'cp 元 先' の順でファイル/ディレクトリを複製する。元のファイルは残る。" },
+  { task: "'a.txt' を 'b.txt' に名前変更(移動)する", answers: ["mv a.txt b.txt"], hint: "move", level: 1,
+    output: "(出力なし。'a.txt' が消え 'b.txt' になる)",
+    explain: "move の略。ファイルを移動するコマンドだが、同じディレクトリ内で別名を指定すればリネームになる。" },
+  { task: "'old.txt' というファイルを削除する", answers: ["rm old.txt"], hint: "remove", level: 1,
+    output: "(出力なし。'old.txt' が削除される)",
+    explain: "remove の略。ファイルを削除する。ゴミ箱には入らず元に戻せないので注意。" },
+
+  { task: "ファイル一覧を詳細情報(パーミッション等)付きで表示する", answers: ["ls -l"], hint: "long format", level: 2,
+    output: "-rw-r--r-- 1 user user  120 Jun 19 10:00 a.txt\n-rw-r--r-- 1 user user   45 Jun 19 10:01 b.txt",
+    explain: "'-l' は long format(詳細形式)。パーミッション・所有者・サイズ・更新日時などを1行ずつ表示する。" },
+  { task: "隠しファイルも含めて一覧表示する", answers: ["ls -a", "ls -la", "ls -la", "ls -al"], hint: "all", level: 2,
+    output: ".  ..  .bashrc  a.txt  b.txt  docs",
+    explain: "'-a' は all。'.'で始まる隠しファイルも含めて全て表示する。'-la'は'-l'と'-a'を組み合わせたもの。" },
+  { task: "ディレクトリを中身があっても再帰的に削除する", answers: ["rm -r dir", "rm -rf dir"], hint: "recursive", level: 2,
+    output: "(出力なし。'dir' とその中身が全て削除される)",
+    explain: "'-r' は recursive(再帰的)。ディレクトリの中身も含めて削除する。'-f'はforce(強制)で確認を省略する。" },
+  { task: "'log.txt' から 'error' という文字列を含む行を検索する", answers: ["grep error log.txt"], hint: "global regular expression print", level: 2,
+    output: "2026-06-19 10:02:11 error: connection refused",
+    explain: "global regular expression print の略。ファイル内から正規表現にマッチする行を抜き出して表示する。" },
+  { task: "現在のディレクトリ以下から 'app.js' というファイルを探す", answers: ["find . -name app.js", "find . -name \"app.js\""], hint: "find . -name", level: 2,
+    output: "./src/app.js",
+    explain: "find はファイル/ディレクトリを探索するコマンド。'.'は探索開始位置(カレント)、'-name'は名前で絞り込む条件。" },
+  { task: "'script.sh' に実行権限を付与する", answers: ["chmod +x script.sh"], hint: "change mode", level: 2,
+    output: "(出力なし。'script.sh' が実行可能になる)",
+    explain: "change mode の略。ファイルのパーミッション(権限)を変更する。'+x'はexecute(実行)権限を追加する指定。" },
+  { task: "'log.txt' の先頭10行を表示する", answers: ["head log.txt", "head -n 10 log.txt"], hint: "head", level: 2,
+    output: "(log.txtの先頭10行が表示される)",
+    explain: "ファイルの先頭部分を表示する。デフォルトは10行で、'-n'で行数を指定できる。" },
+  { task: "'log.txt' の末尾10行を表示する", answers: ["tail log.txt", "tail -n 10 log.txt"], hint: "tail", level: 2,
+    output: "(log.txtの末尾10行が表示される)",
+    explain: "ファイルの末尾部分を表示する。ログの最新行を見るのによく使う。'-f'を付けると追記をリアルタイムで追跡できる。" },
+  { task: "現在実行中のプロセス一覧を表示する", answers: ["ps", "ps aux"], hint: "process status", level: 2,
+    output: "  PID TTY          TIME CMD\n 1234 pts/0    00:00:01 bash",
+    explain: "process status の略。実行中のプロセスを一覧表示する。'aux'はオプションで全ユーザーの全プロセスを詳細表示する。" },
+  { task: "ディスクの使用量を人が読みやすい形式で表示する", answers: ["df -h"], hint: "disk free, human-readable", level: 2,
+    output: "Filesystem      Size  Used Avail Use% Mounted on\n/dev/sda1        50G   12G   38G  24% /",
+    explain: "disk free の略。ファイルシステムごとの空き容量を表示する。'-h'はhuman-readableで、バイト数をGB/MB単位に変換して見やすくする。" },
+
+  { task: "PID 1234 のプロセスを強制終了する", answers: ["kill -9 1234", "kill 1234"], hint: "kill", level: 3,
+    output: "(出力なし。PID 1234 のプロセスが終了する)",
+    explain: "指定したPID(プロセスID)にシグナルを送ってプロセスを終了させる。'-9'はSIGKILLで、即座に強制終了させるシグナル番号。" },
+  { task: "'data.txt' をパイプで 'wc -l' に渡して行数を数える", answers: ["cat data.txt | wc -l"], hint: "パイプ |", level: 3,
+    output: "42",
+    explain: "'|'(パイプ)は左のコマンドの出力を右のコマンドの入力に渡す仕組み。wcはword countの略で、'-l'は行数のみカウントする指定。" },
+  { task: "'access.log' を 'error' でフィルタし、さらに件数をカウントする", answers: ["grep error access.log | wc -l"], hint: "grep | wc -l", level: 3,
+    output: "7",
+    explain: "grepでマッチした行だけを抜き出し、その結果をパイプで wc -l に渡して行数(=件数)を数える、という2段階の処理。" },
+  { task: "'file.txt' の所有者を 'alice' に変更する", answers: ["chown alice file.txt"], hint: "change owner", level: 3,
+    output: "(出力なし。'file.txt' の所有者が alice になる)",
+    explain: "change owner の略。ファイルやディレクトリの所有者(ユーザー)を変更する。" },
+  { task: "'archive.tar.gz' を展開する", answers: ["tar -xzf archive.tar.gz", "tar xzf archive.tar.gz"], hint: "tar -xzf", level: 3,
+    output: "(出力なし。アーカイブの中身が展開される)",
+    explain: "tarはアーカイブ(まとめ)を扱うコマンド。'-x'はextract(展開)、'-z'はgzip圧縮の処理、'-f'はfile(対象ファイル指定)を意味する。" },
+  { task: "現在のディレクトリを 'backup.tar.gz' にまとめて圧縮する", answers: ["tar -czf backup.tar.gz .", "tar czf backup.tar.gz ."], hint: "tar -czf", level: 3,
+    output: "(出力なし。'backup.tar.gz' が作成される)",
+    explain: "'-c'はcreate(作成)、'-z'はgzip圧縮、'-f'はfile(出力ファイル名指定)。展開時の'-x'がここでは'-c'になっている点に注意。" },
+  { task: "標準出力を 'out.txt' に上書きでリダイレクトする(echo hiの場合)", answers: ["echo hi > out.txt"], hint: "リダイレクト >", level: 3,
+    output: "(画面には出力されず、'out.txt' の内容が 'hi' に置き換わる)",
+    explain: "'>'はリダイレクトといい、本来画面に出る標準出力をファイルに書き込む。既存の内容は上書きされて消える点に注意。" },
+  { task: "標準出力を 'out.txt' に追記でリダイレクトする(echo hiの場合)", answers: ["echo hi >> out.txt"], hint: "追記 >>", level: 3,
+    output: "(画面には出力されず、'out.txt' の末尾に 'hi' が追加される)",
+    explain: "'>>'は'>'と同様にファイルへ書き込むが、上書きせずファイルの末尾に追記する。" },
+  { task: "環境変数 PATH の値を表示する", answers: ["echo $PATH"], hint: "echo $変数名", level: 3,
+    output: "/usr/local/bin:/usr/bin:/bin",
+    explain: "echoは文字列を表示するコマンド。'$変数名'はシェル変数・環境変数の値に展開される。PATHはコマンド検索対象ディレクトリの一覧。" },
+
+  { task: "'names.txt' を行単位でソートする", answers: ["sort names.txt"], hint: "sort", level: 4,
+    output: "alice\nbob\ncarol",
+    explain: "sortは行を並べ替えるコマンド。デフォルトは文字コード順(辞書順)。'-n'を付けると数値として比較できる。" },
+  { task: "'names.txt' をソートしたうえで重複行を除去する", answers: ["sort names.txt | uniq", "sort -u names.txt"], hint: "sort | uniq", level: 4,
+    output: "alice\nbob\ncarol",
+    explain: "uniqは隣接する重複行をまとめるコマンドで、事前にsortしておく必要がある。'sort -u'はソートと重複除去を1つで行うオプション。" },
+  { task: "'list.txt' の各行を引数として 'rm' に渡して削除する", answers: ["cat list.txt | xargs rm", "xargs rm < list.txt"], hint: "xargs", level: 4,
+    output: "(出力なし。list.txtに書かれたファイルが全て削除される)",
+    explain: "xargsは標準入力から受け取った内容を、後続コマンドの引数として渡す。grepやfindの検索結果をまとめて処理する際によく使う。" },
+  { task: "'data.csv' の2列目だけを取り出す(カンマ区切り)", answers: ["awk -F, '{print $2}' data.csv", "cut -d, -f2 data.csv"], hint: "awk -F または cut -d", level: 4,
+    output: "30\n25\n40",
+    explain: "awkは列単位でテキストを処理する言語。'-F,'は区切り文字をカンマに指定、'$2'は2列目を意味する。cutも同様に列を切り出せ、'-d'が区切り文字、'-f'が列番号。" },
+  { task: "'config.txt' 内の 'foo' を全て 'bar' に置換する(画面に表示するだけ)", answers: ["sed 's/foo/bar/g' config.txt"], hint: "sed s/old/new/g", level: 4,
+    output: "bar=1\nbar_path=/etc/bar",
+    explain: "sedはストリームエディタで、テキストを1行ずつ処理して変換する。's/置換前/置換後/g'は置換コマンドで、末尾の'g'は1行内の全マッチを置換する指定。" },
+  { task: "'a.txt' と 'b.txt' の差分を表示する", answers: ["diff a.txt b.txt"], hint: "diff", level: 4,
+    output: "3c3\n< old line\n---\n> new line",
+    explain: "diffは2つのファイルを比較して差分を表示する。'<'はa.txt側、'>'はb.txt側の行を示す。" },
+  { task: "'remote.example.com' に 'user' としてSSH接続する", answers: ["ssh user@remote.example.com"], hint: "ssh user@host", level: 4,
+    output: "user@remote.example.com's password: ",
+    explain: "sshは暗号化通信でリモートサーバーにログインするコマンド。'ユーザー名@ホスト名'の形式で接続先を指定する。" },
+  { task: "'file.txt' をリモートサーバー 'remote.example.com' の '/tmp' にコピーする", answers: ["scp file.txt user@remote.example.com:/tmp", "scp file.txt remote.example.com:/tmp"], hint: "scp ファイル user@host:path", level: 4,
+    output: "file.txt                100%  120B   1.0MB/s   00:00",
+    explain: "scpはsshの仕組みを使ってファイルをリモートサーバーとの間で安全にコピーするコマンド。'ホスト:パス'でリモート側の保存先を指定する。" },
+  { task: "'https://example.com/data.json' をダウンロードして 'data.json' として保存する", answers: ["curl -O https://example.com/data.json", "wget https://example.com/data.json"], hint: "curl -O または wget", level: 4,
+    output: "Saving to: 'data.json'\n100%[=====================>] 1.2K",
+    explain: "curlとwgetはどちらもURLからデータを取得するコマンド。curlの'-O'はURLのファイル名のまま保存する指定で、wgetはデフォルトでファイル保存する挙動になる。" },
+  { task: "現在のシェルのコマンド履歴を表示する", answers: ["history"], hint: "history", level: 4,
+    output: "  1  ls\n  2  cd projects\n  3  cat note.txt",
+    explain: "これまでに実行したコマンドの履歴を番号付きで表示する。'!番号'で該当コマンドを再実行できる。" },
+  { task: "'ll' というエイリアスを 'ls -la' として登録する", answers: ["alias ll='ls -la'", "alias ll=\"ls -la\""], hint: "alias name='cmd'", level: 4,
+    output: "(出力なし。'll' コマンドが使えるようになる)",
+    explain: "aliasは長いコマンドに短い別名をつける仕組み。'alias 名前=コマンド'の形式で登録し、以後その名前で同じコマンドを実行できる。" },
+  { task: "'app.js' というコマンドがどこにインストールされているか調べる", answers: ["which app.js"], hint: "which", level: 4,
+    output: "/usr/local/bin/app.js",
+    explain: "whichはPATHに登録されたディレクトリを検索し、指定したコマンドの実行ファイルの場所を表示する。" },
+];
+
+let score = 0;
+let level = 1;
+let pool = [];
+let queue = [];
+let current = null;
+let usedHint = false;
+let storageOk = true;
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function refillQueue() {
+  queue = shuffle(pool);
+  if (current && queue.length > 1 && queue[0] === current) {
+    [queue[0], queue[1]] = [queue[1], queue[0]];
+  }
+}
+
+function loadHigh() {
+  try {
+    return Number(localStorage.getItem("unixGameHigh") || 0);
+  } catch (e) {
+    storageOk = false;
+    return 0;
+  }
+}
+
+function saveHigh(n) {
+  if (!storageOk) return;
+  try {
+    localStorage.setItem("unixGameHigh", String(n));
+  } catch (e) {
+    storageOk = false;
+  }
+}
+
+const high = loadHigh();
+document.getElementById("high").textContent = high;
+
+function buildPool() {
+  pool = QUESTIONS.filter(q => q.level <= level);
+  queue = queue.filter(q => pool.includes(q));
+}
+
+function normalize(s) {
+  return s.trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+let awaitingNext = false;
+
+function pickQuestion() {
+  if (queue.length === 0) refillQueue();
+  current = queue.shift();
+  awaitingNext = false;
+  document.getElementById("taskText").textContent = current.task;
+  document.getElementById("catLabel").textContent = "Lv" + current.level;
+  document.getElementById("feedback").textContent = "";
+  document.getElementById("feedback").className = "feedback";
+  document.getElementById("output").style.display = "none";
+  document.getElementById("explain").style.display = "none";
+  document.getElementById("hint").textContent = "";
+  document.getElementById("nextBtn").style.display = "none";
+  document.getElementById("answer").disabled = false;
+  usedHint = false;
+  document.getElementById("answer").value = "";
+  document.getElementById("answer").focus();
+}
+
+function setScore(n) {
+  score = n;
+  document.getElementById("score").textContent = score;
+  if (score > high) {
+    saveHigh(score);
+    document.getElementById("high").textContent = score;
+  }
+  const newLevel = score >= 24 ? 4 : score >= 16 ? 3 : score >= 8 ? 2 : 1;
+  if (newLevel !== level) {
+    level = newLevel;
+    document.getElementById("level").textContent = level;
+    buildPool();
+  }
+}
+
+function check() {
+  const val = normalize(document.getElementById("answer").value);
+  const ok = current.answers.some(a => normalize(a) === val);
+  const fb = document.getElementById("feedback");
+  if (current.explain) {
+    const exBox = document.getElementById("explain");
+    document.getElementById("explainText").textContent = current.explain;
+    exBox.style.display = "block";
+  }
+  if (ok) {
+    fb.textContent = "正解！ -> " + current.answers[0];
+    fb.className = "feedback ok";
+    const outBox = document.getElementById("output");
+    document.getElementById("outputText").textContent = current.output || "(出力なし)";
+    outBox.style.display = "block";
+    setScore(score + (usedHint ? 0 : 1));
+    awaitingNext = true;
+    document.getElementById("answer").disabled = true;
+    document.getElementById("nextBtn").style.display = "inline-block";
+    document.getElementById("nextBtn").focus();
+  } else {
+    fb.textContent = "不正解。正解例: " + current.answers[0];
+    fb.className = "feedback bad";
+  }
+}
+
+document.getElementById("answer").addEventListener("keydown", e => {
+  if (e.key === "Enter") check();
+});
+document.getElementById("nextBtn").addEventListener("click", pickQuestion);
+document.getElementById("hintBtn").addEventListener("click", () => {
+  usedHint = true;
+  document.getElementById("hint").textContent = "ヒント: " + current.hint;
+});
+document.getElementById("skipBtn").addEventListener("click", pickQuestion);
+
+buildPool();
+pickQuestion();
+</script>
+</body>
+</html>
