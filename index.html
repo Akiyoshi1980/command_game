@@ -353,8 +353,10 @@ function saveHigh(n) {
 const high = loadHigh();
 document.getElementById("high").textContent = high;
 
+const solved = new Set();
+
 function buildPool() {
-  pool = QUESTIONS.filter(q => q.level <= level);
+  pool = QUESTIONS.filter(q => q.level <= level && !solved.has(q));
   queue = queue.filter(q => pool.includes(q));
 }
 
@@ -363,11 +365,17 @@ function normalize(s) {
 }
 
 let awaitingNext = false;
+let wrongAttempted = false;
 
 function pickQuestion() {
+  if (pool.length === 0) {
+    showClear();
+    return;
+  }
   if (queue.length === 0) refillQueue();
   current = queue.shift();
   awaitingNext = false;
+  wrongAttempted = false;
   document.getElementById("taskText").textContent = current.task;
   document.getElementById("catLabel").textContent = "Lv" + current.level;
   document.getElementById("feedback").textContent = "";
@@ -398,6 +406,7 @@ function setScore(n) {
 }
 
 function check() {
+  if (awaitingNext) return;
   const val = normalize(document.getElementById("answer").value);
   const ok = current.answers.some(a => normalize(a) === val);
   const fb = document.getElementById("feedback");
@@ -413,18 +422,41 @@ function check() {
     document.getElementById("outputText").textContent = current.output || "(出力なし)";
     outBox.style.display = "block";
     setScore(score + (usedHint ? 0 : 1));
+    if (!wrongAttempted) {
+      solved.add(current);
+      buildPool();
+    }
     awaitingNext = true;
     document.getElementById("answer").disabled = true;
     document.getElementById("nextBtn").style.display = "inline-block";
-    document.getElementById("nextBtn").focus();
   } else {
+    wrongAttempted = true;
     fb.textContent = "不正解。正解例: " + current.answers[0];
     fb.className = "feedback bad";
   }
 }
 
+function showClear() {
+  document.getElementById("taskText").textContent = "全問クリア！おめでとうございます！";
+  document.getElementById("catLabel").textContent = "CLEAR";
+  document.getElementById("feedback").textContent = "";
+  document.getElementById("output").style.display = "none";
+  document.getElementById("explain").style.display = "none";
+  document.getElementById("hint").textContent = "";
+  document.getElementById("nextBtn").style.display = "none";
+  document.getElementById("answer").disabled = true;
+  document.getElementById("hintBtn").disabled = true;
+  document.getElementById("skipBtn").disabled = true;
+}
+
 document.getElementById("answer").addEventListener("keydown", e => {
-  if (e.key === "Enter") check();
+  if (e.key === "Enter") {
+    e.stopPropagation();
+    check();
+  }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && awaitingNext) pickQuestion();
 });
 document.getElementById("nextBtn").addEventListener("click", pickQuestion);
 document.getElementById("hintBtn").addEventListener("click", () => {
