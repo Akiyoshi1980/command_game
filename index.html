@@ -175,8 +175,15 @@
     margin-top: 8px;
     font-size: 0.85rem;
   }
-  .excludeRow span { flex: 1; }
-  .excludeRow button { margin: 0; padding: 4px 10px; font-size: 0.75rem; }
+  .excludeRow span { flex: 1; min-width: 0; }
+  .excludeRow button {
+    flex: 0 0 auto;
+    width: auto;
+    margin: 0;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+  }
   .emptyMsg { color: var(--dim); font-size: 0.85rem; margin-top: 10px; }
   .term {
     border-bottom: 1px dotted #ffcc33;
