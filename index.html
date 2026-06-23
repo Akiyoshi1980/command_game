@@ -156,6 +156,31 @@
     border-color: #ffcc33;
     color: #000;
   }
+  .term {
+    border-bottom: 1px dotted #ffcc33;
+    color: #ffe08a;
+    cursor: pointer;
+  }
+  .term:hover, .term:active { background: rgba(255,204,51,0.15); }
+  #glossaryTip {
+    position: fixed;
+    max-width: 280px;
+    background: #1a1f14;
+    border: 1px solid #ffcc33;
+    color: #fff3cf;
+    font-size: 0.8rem;
+    padding: 8px 10px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    z-index: 50;
+    display: none;
+  }
+  #glossaryTip .gTitle {
+    color: #ffcc33;
+    font-weight: bold;
+    margin-bottom: 4px;
+    display: block;
+  }
   .footer {
     margin-top: 14px;
     font-size: 0.75rem;
@@ -222,6 +247,8 @@
 
   <div class="footer">Enterで判定 / 完全一致でなくても代表的な書き方なら正解になります</div>
 </div>
+
+<div id="glossaryTip"><span class="gTitle" id="gTitleText"></span><span id="gBodyText"></span></div>
 
 <script>
 const QUESTIONS = [
@@ -403,6 +430,88 @@ const QUESTIONS = [
 
 QUESTIONS.forEach((q, i) => { q.id = i; });
 
+const GLOSSARY = {
+  "パーミッション": "ファイルやディレクトリに対する読み取り・書き込み・実行などのアクセス権限。",
+  "プロセス": "実行中のプログラムの単位。1つのプロセスには固有のPID(プロセスID)が割り当てられる。",
+  "PID": "Process ID(プロセスID)の略。実行中の各プロセスに割り当てられる識別番号。",
+  "シグナル": "実行中のプロセスに送る制御命令。例えばSIGKILL(強制終了)やSIGTERM(終了要求)などがある。",
+  "リダイレクト": "標準出力や標準入力の向き先をファイルなどに変更する仕組み。'>' や '<' で表す。",
+  "パイプ": "あるコマンドの出力を別のコマンドの入力に直接つなぐ仕組み。'|' の記号で表す。",
+  "正規表現": "文字列のパターンを表現するための記法。検索や置換で「ある条件に合う文字列」を指定できる。",
+  "シンボリックリンク": "別のファイルやディレクトリを指す「ショートカット」のようなファイル。",
+  "環境変数": "シェルや実行中のプロセスが参照できる名前付きの値。PATHやHOMEなどが代表例。",
+  "アーカイブ": "複数のファイルやディレクトリを1つのファイルにまとめたもの。tarコマンドなどで作成する。",
+  "カーネル": "OSの中核部分。ハードウェアの制御やプロセス管理など基本的な機能を担う。",
+  "マニュアル": "コマンドの使い方やオプションを説明したドキュメント。manコマンドで閲覧できる。",
+  "ページャ": "長い文章を1画面ずつスクロールして表示するためのプログラム。lessやmoreなど。",
+  "ジョブ": "シェルが管理する実行中または停止中のコマンド・処理の単位。",
+  "バックグラウンド": "ターミナルの入力を占有せずに裏側で実行される状態。末尾に'&'を付けると移行する。",
+  "フォアグラウンド": "ターミナルの入力を占有して実行されている、通常の実行状態。",
+  "ポート": "ネットワーク通信でプログラムごとに割り当てられる番号。例えばWebサーバーは80番を使う。",
+  "エイリアス": "コマンドに付ける別名。長いコマンドを短い名前で呼び出せるようにする。",
+  "UID": "User ID(ユーザーID)の略。各ユーザーに割り当てられる識別番号。",
+  "GID": "Group ID(グループID)の略。ユーザーが所属するグループの識別番号。",
+  "標準出力": "コマンドの実行結果が通常表示される出力先。デフォルトは画面(ターミナル)。",
+  "標準入力": "コマンドがデータを受け取る入力元。デフォルトはキーボード。",
+  "シェル": "ユーザーの入力したコマンドを解釈して実行するプログラム。bashなどが代表例。",
+  "ストリームエディタ": "テキストを1行ずつ読み込みながら変換・編集する処理方式。sedが代表例。",
+};
+
+const GLOSSARY_TERMS = Object.keys(GLOSSARY).sort((a, b) => b.length - a.length);
+
+function escapeHtml(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function annotateTerms(text) {
+  if (!text) return "";
+  let result = "";
+  let i = 0;
+  while (i < text.length) {
+    let matched = null;
+    for (const term of GLOSSARY_TERMS) {
+      if (text.startsWith(term, i)) {
+        matched = term;
+        break;
+      }
+    }
+    if (matched) {
+      result += '<span class="term" data-term="' + escapeHtml(matched) + '">' + escapeHtml(matched) + "</span>";
+      i += matched.length;
+    } else {
+      result += escapeHtml(text[i]);
+      i += 1;
+    }
+  }
+  return result;
+}
+
+function setAnnotatedText(elId, text) {
+  document.getElementById(elId).innerHTML = annotateTerms(text);
+}
+
+document.addEventListener("click", e => {
+  const termEl = e.target.closest(".term");
+  const tip = document.getElementById("glossaryTip");
+  if (termEl) {
+    const term = termEl.dataset.term;
+    document.getElementById("gTitleText").textContent = term;
+    document.getElementById("gBodyText").textContent = GLOSSARY[term] || "";
+    const rect = termEl.getBoundingClientRect();
+    tip.style.display = "block";
+    let top = rect.bottom + 6;
+    let left = rect.left;
+    const maxLeft = window.innerWidth - 290;
+    if (left > maxLeft) left = Math.max(8, maxLeft);
+    if (top + 100 > window.innerHeight) top = rect.top - 90;
+    tip.style.top = top + "px";
+    tip.style.left = left + "px";
+    e.stopPropagation();
+  } else if (!e.target.closest("#glossaryTip")) {
+    tip.style.display = "none";
+  }
+});
+
 let score = 0;
 let level = 1;
 let pool = [];
@@ -492,7 +601,7 @@ function pickQuestion() {
   current = queue.shift();
   awaitingNext = false;
   wrongAttempted = false;
-  document.getElementById("taskText").textContent = current.task;
+  setAnnotatedText("taskText", current.task);
   document.getElementById("catLabel").textContent = "Lv" + current.level;
   updateFavBtn();
   document.getElementById("feedback").textContent = "";
@@ -529,7 +638,7 @@ function check() {
   const fb = document.getElementById("feedback");
   if (current.explain) {
     const exBox = document.getElementById("explain");
-    document.getElementById("explainText").textContent = current.explain;
+    setAnnotatedText("explainText", current.explain);
     exBox.style.display = "block";
   }
   if (ok) {
@@ -578,7 +687,7 @@ document.addEventListener("keydown", e => {
 document.getElementById("nextBtn").addEventListener("click", pickQuestion);
 document.getElementById("hintBtn").addEventListener("click", () => {
   usedHint = true;
-  document.getElementById("hint").textContent = "ヒント: " + current.hint;
+  document.getElementById("hint").innerHTML = "ヒント: " + annotateTerms(current.hint);
 });
 document.getElementById("skipBtn").addEventListener("click", pickQuestion);
 
