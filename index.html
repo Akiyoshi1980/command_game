@@ -129,7 +129,10 @@
     margin-top: 12px;
     margin-right: 8px;
   }
-  button:hover { background: var(--green); }
+  @media (hover: hover) {
+    button:hover { background: var(--green); }
+    .levelBtn:hover { background: var(--dim); color: #000; }
+  }
   .levelBtn {
     display: block;
     width: 100%;
@@ -139,7 +142,6 @@
     color: var(--text);
     border: 1px solid var(--dim);
   }
-  .levelBtn:hover { background: var(--dim); color: #000; }
   .levelBtn .name { color: var(--green); font-weight: bold; margin-right: 8px; }
   .favBtn {
     display: inline-block;
@@ -789,6 +791,11 @@ document.getElementById("answer").addEventListener("keydown", e => {
 });
 document.addEventListener("keydown", e => {
   if (e.key === "Enter" && awaitingNext) pickQuestion();
+});
+document.addEventListener("click", e => {
+  if (e.target.closest("button")) {
+    e.target.blur();
+  }
 });
 document.getElementById("nextBtn").addEventListener("click", pickQuestion);
 document.getElementById("hintBtn").addEventListener("click", () => {
