@@ -52,7 +52,13 @@
     color: #fff;
     margin-bottom: 14px;
     line-height: 1.6;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 6px 10px;
   }
+  .task .taskMain { flex: 1 1 100%; min-width: 0; }
   .task .badge {
     display: inline-block;
     background: var(--dim);
@@ -135,6 +141,21 @@
   }
   .levelBtn:hover { background: var(--dim); color: #000; }
   .levelBtn .name { color: var(--green); font-weight: bold; margin-right: 8px; }
+  .favBtn {
+    display: inline-block;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    background: transparent;
+    border: 1px solid var(--dim);
+    color: var(--dim);
+  }
+  .favBtn.active {
+    background: #ffcc33;
+    border-color: #ffcc33;
+    color: #000;
+  }
   .footer {
     margin-top: 14px;
     font-size: 0.75rem;
@@ -172,16 +193,18 @@
   <div class="terminal" id="startScreen">
     <div class="task">開始レベルを選んでください</div>
     <div id="levelChoices"></div>
+    <button id="reviewFavBtn" class="levelBtn" style="display:none;"></button>
   </div>
 
   <div class="hud" id="hud" style="display:none;">
     <span>レベル: <span id="level">1</span></span>
     <span>正解数: <span id="score">0</span></span>
     <span>ハイスコア: <span id="high">0</span></span>
+    <button id="backBtn" style="margin:0; padding:4px 10px; font-size:0.8rem;">タイトルに戻る</button>
   </div>
 
   <div class="terminal" id="gameScreen" style="display:none;">
-    <div class="task"><span class="badge" id="catLabel">basic</span><span id="taskText">読み込み中...</span></div>
+    <div class="task"><span class="taskMain"><span class="badge" id="catLabel">basic</span><span id="taskText">読み込み中...</span></span><button id="favBtn" class="favBtn">☆ 苦手登録</button></div>
     <div class="promptline">
       <span>$</span>
       <input id="answer" type="text" autocomplete="off" spellcheck="false" placeholder="コマンドを入力...">
@@ -378,6 +401,8 @@ const QUESTIONS = [
     explain: "fgはforegroundの略。Ctrl+Zで停止したジョブや'&'でバックグラウンド化したジョブをフォアグラウンドに戻す。" },
 ];
 
+QUESTIONS.forEach((q, i) => { q.id = i; });
+
 let score = 0;
 let level = 1;
 let pool = [];
@@ -385,6 +410,23 @@ let queue = [];
 let current = null;
 let usedHint = false;
 let storageOk = true;
+let reviewMode = false;
+
+function loadFavorites() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem("unixGameFavorites") || "[]"));
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function saveFavorites() {
+  try {
+    localStorage.setItem("unixGameFavorites", JSON.stringify([...favorites]));
+  } catch (e) {}
+}
+
+const favorites = loadFavorites();
 
 function shuffle(arr) {
   const a = arr.slice();
@@ -426,7 +468,11 @@ document.getElementById("high").textContent = high;
 const solved = new Set();
 
 function buildPool() {
-  pool = QUESTIONS.filter(q => q.level <= level && !solved.has(q));
+  if (reviewMode) {
+    pool = QUESTIONS.filter(q => favorites.has(q.id) && !solved.has(q));
+  } else {
+    pool = QUESTIONS.filter(q => q.level <= level && !solved.has(q));
+  }
   queue = queue.filter(q => pool.includes(q));
 }
 
@@ -448,6 +494,7 @@ function pickQuestion() {
   wrongAttempted = false;
   document.getElementById("taskText").textContent = current.task;
   document.getElementById("catLabel").textContent = "Lv" + current.level;
+  updateFavBtn();
   document.getElementById("feedback").textContent = "";
   document.getElementById("feedback").className = "feedback";
   document.getElementById("output").style.display = "none";
@@ -535,6 +582,24 @@ document.getElementById("hintBtn").addEventListener("click", () => {
 });
 document.getElementById("skipBtn").addEventListener("click", pickQuestion);
 
+function updateFavBtn() {
+  const btn = document.getElementById("favBtn");
+  const isFav = favorites.has(current.id);
+  btn.textContent = isFav ? "★ 苦手登録済み" : "☆ 苦手登録";
+  btn.classList.toggle("active", isFav);
+}
+
+document.getElementById("favBtn").addEventListener("click", () => {
+  if (favorites.has(current.id)) {
+    favorites.delete(current.id);
+  } else {
+    favorites.add(current.id);
+  }
+  saveFavorites();
+  updateFavBtn();
+  updateReviewBtnVisibility();
+});
+
 const LEVEL_INFO = [
   { level: 1, name: "Lv1 基本操作", desc: "ls / cd / mkdir などファイル操作の基本", baseScore: 0 },
   { level: 2, name: "Lv2 検索・権限", desc: "grep / find / chmod / ps など", baseScore: 8 },
@@ -543,8 +608,10 @@ const LEVEL_INFO = [
 ];
 
 function startGame(chosenLevel, baseScore) {
+  reviewMode = false;
   level = chosenLevel;
   score = baseScore;
+  solved.clear();
   document.getElementById("score").textContent = score;
   document.getElementById("level").textContent = level;
   document.getElementById("startScreen").style.display = "none";
@@ -553,6 +620,39 @@ function startGame(chosenLevel, baseScore) {
   buildPool();
   pickQuestion();
 }
+
+function startReview() {
+  reviewMode = true;
+  level = 4;
+  score = 0;
+  solved.clear();
+  document.getElementById("score").textContent = score;
+  document.getElementById("level").textContent = "苦手復習";
+  document.getElementById("startScreen").style.display = "none";
+  document.getElementById("hud").style.display = "flex";
+  document.getElementById("gameScreen").style.display = "block";
+  buildPool();
+  pickQuestion();
+}
+
+function updateReviewBtnVisibility() {
+  const btn = document.getElementById("reviewFavBtn");
+  if (favorites.size > 0) {
+    btn.style.display = "block";
+    btn.innerHTML = '<span class="name">苦手問題を復習</span>登録済み ' + favorites.size + ' 問';
+  } else {
+    btn.style.display = "none";
+  }
+}
+
+function backToTitle() {
+  document.getElementById("gameScreen").style.display = "none";
+  document.getElementById("hud").style.display = "none";
+  document.getElementById("startScreen").style.display = "block";
+  updateReviewBtnVisibility();
+}
+
+document.getElementById("backBtn").addEventListener("click", backToTitle);
 
 function renderLevelChoices() {
   const box = document.getElementById("levelChoices");
@@ -563,6 +663,8 @@ function renderLevelChoices() {
     btn.addEventListener("click", () => startGame(info.level, info.baseScore));
     box.appendChild(btn);
   });
+  document.getElementById("reviewFavBtn").addEventListener("click", startReview);
+  updateReviewBtnVisibility();
 }
 
 renderLevelChoices();
