@@ -156,6 +156,28 @@
     border-color: #ffcc33;
     color: #000;
   }
+  .taskActions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .excludeRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    background: #15301d;
+    border: 1px solid var(--dim);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-top: 8px;
+    font-size: 0.85rem;
+  }
+  .excludeRow span { flex: 1; }
+  .excludeRow button { margin: 0; padding: 4px 10px; font-size: 0.75rem; }
+  .emptyMsg { color: var(--dim); font-size: 0.85rem; margin-top: 10px; }
   .term {
     border-bottom: 1px dotted #ffcc33;
     color: #ffe08a;
@@ -206,6 +228,11 @@
       margin-top: 8px;
       padding: 10px 12px;
     }
+    .taskActions .favBtn {
+      width: auto;
+      flex: 1 1 auto;
+      margin-top: 0;
+    }
     .output, .explain { font-size: 0.8rem; }
   }
 </style>
@@ -219,6 +246,13 @@
     <div class="task">開始レベルを選んでください</div>
     <div id="levelChoices"></div>
     <button id="reviewFavBtn" class="levelBtn" style="display:none;"></button>
+    <button id="manageExcludeBtn" class="levelBtn" style="display:none;"></button>
+  </div>
+
+  <div class="terminal" id="excludeScreen" style="display:none;">
+    <div class="task">除外した問題一覧</div>
+    <div id="excludeList"></div>
+    <button id="closeExcludeBtn">タイトルに戻る</button>
   </div>
 
   <div class="hud" id="hud" style="display:none;">
@@ -229,7 +263,11 @@
   </div>
 
   <div class="terminal" id="gameScreen" style="display:none;">
-    <div class="task"><span class="taskMain"><span class="badge" id="catLabel">basic</span><span id="taskText">読み込み中...</span></span><button id="favBtn" class="favBtn">☆ 苦手登録</button></div>
+    <div class="task"><span class="taskMain"><span class="badge" id="catLabel">basic</span><span id="taskText">読み込み中...</span></span></div>
+    <div class="taskActions">
+      <button id="favBtn" class="favBtn">☆ 苦手登録</button>
+      <button id="excludeBtn" class="favBtn">✕ この問題を除外</button>
+    </div>
     <div class="promptline">
       <span>$</span>
       <input id="answer" type="text" autocomplete="off" spellcheck="false" placeholder="コマンドを入力...">
@@ -581,6 +619,22 @@ function saveFavorites() {
 
 const favorites = loadFavorites();
 
+function loadExcluded() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem("unixGameExcluded") || "[]"));
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function saveExcluded() {
+  try {
+    localStorage.setItem("unixGameExcluded", JSON.stringify([...excluded]));
+  } catch (e) {}
+}
+
+const excluded = loadExcluded();
+
 function shuffle(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -622,9 +676,9 @@ const solved = new Set();
 
 function buildPool() {
   if (reviewMode) {
-    pool = QUESTIONS.filter(q => favorites.has(q.id) && !solved.has(q));
+    pool = QUESTIONS.filter(q => favorites.has(q.id) && !solved.has(q) && !excluded.has(q.id));
   } else {
-    pool = QUESTIONS.filter(q => q.level <= level && !solved.has(q));
+    pool = QUESTIONS.filter(q => q.level <= level && !solved.has(q) && !excluded.has(q.id));
   }
   queue = queue.filter(q => pool.includes(q));
 }
@@ -753,6 +807,14 @@ document.getElementById("favBtn").addEventListener("click", () => {
   updateReviewBtnVisibility();
 });
 
+document.getElementById("excludeBtn").addEventListener("click", () => {
+  excluded.add(current.id);
+  saveExcluded();
+  buildPool();
+  updateManageExcludeVisibility();
+  pickQuestion();
+});
+
 const LEVEL_INFO = [
   { level: 1, name: "Lv1 基本操作", desc: "ls / cd / mkdir などファイル操作の基本", baseScore: 0 },
   { level: 2, name: "Lv2 検索・権限", desc: "grep / find / chmod / ps など", baseScore: 8 },
@@ -803,9 +865,60 @@ function backToTitle() {
   document.getElementById("hud").style.display = "none";
   document.getElementById("startScreen").style.display = "block";
   updateReviewBtnVisibility();
+  updateManageExcludeVisibility();
 }
 
 document.getElementById("backBtn").addEventListener("click", backToTitle);
+
+function updateManageExcludeVisibility() {
+  const btn = document.getElementById("manageExcludeBtn");
+  if (excluded.size > 0) {
+    btn.style.display = "block";
+    btn.innerHTML = '<span class="name">除外した問題を管理</span>除外中 ' + excluded.size + ' 問';
+  } else {
+    btn.style.display = "none";
+  }
+}
+
+function renderExcludeList() {
+  const box = document.getElementById("excludeList");
+  box.innerHTML = "";
+  if (excluded.size === 0) {
+    box.innerHTML = '<div class="emptyMsg">除外した問題はありません</div>';
+    return;
+  }
+  QUESTIONS.filter(q => excluded.has(q.id)).forEach(q => {
+    const row = document.createElement("div");
+    row.className = "excludeRow";
+    const span = document.createElement("span");
+    span.textContent = "Lv" + q.level + ": " + q.task;
+    const btn = document.createElement("button");
+    btn.textContent = "復活";
+    btn.addEventListener("click", () => {
+      excluded.delete(q.id);
+      saveExcluded();
+      renderExcludeList();
+      updateManageExcludeVisibility();
+    });
+    row.appendChild(span);
+    row.appendChild(btn);
+    box.appendChild(row);
+  });
+}
+
+function openExcludeScreen() {
+  document.getElementById("startScreen").style.display = "none";
+  document.getElementById("excludeScreen").style.display = "block";
+  renderExcludeList();
+}
+
+function closeExcludeScreen() {
+  document.getElementById("excludeScreen").style.display = "none";
+  document.getElementById("startScreen").style.display = "block";
+}
+
+document.getElementById("manageExcludeBtn").addEventListener("click", openExcludeScreen);
+document.getElementById("closeExcludeBtn").addEventListener("click", closeExcludeScreen);
 
 function renderLevelChoices() {
   const box = document.getElementById("levelChoices");
@@ -818,6 +931,7 @@ function renderLevelChoices() {
   });
   document.getElementById("reviewFavBtn").addEventListener("click", startReview);
   updateReviewBtnVisibility();
+  updateManageExcludeVisibility();
 }
 
 renderLevelChoices();
