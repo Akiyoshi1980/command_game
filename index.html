@@ -143,17 +143,21 @@
     border: 1px solid var(--dim);
   }
   .levelBtn .name { color: var(--green); font-weight: bold; margin-right: 8px; }
-  .favBtn {
+  .favBtn,
+  button.favBtn:hover {
     display: inline-block;
-    flex-shrink: 0;
+    flex: 1 1 0;
+    min-width: 0;
     margin: 0;
     padding: 2px 8px;
     font-size: 0.75rem;
     background: transparent;
     border: 1px solid var(--dim);
     color: var(--dim);
+    text-align: center;
   }
-  .favBtn.active {
+  .favBtn.active,
+  button.favBtn.active:hover {
     background: #ffcc33;
     border-color: #ffcc33;
     color: #000;
@@ -240,7 +244,8 @@
     }
     .taskActions .favBtn {
       width: auto;
-      flex: 1 1 auto;
+      flex: 1 1 0;
+      min-width: 0;
       margin-top: 0;
     }
     .output, .explain { font-size: 0.8rem; }
