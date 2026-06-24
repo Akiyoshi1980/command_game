@@ -448,7 +448,7 @@ const QUESTIONS = [
   { task: "現在のユーザーIDとグループIDを表示する", answers: ["id"], hint: "id", level: 3,
     output: "uid=1000(user) gid=1000(user) groups=1000(user)",
     explain: "idは現在のユーザーのUID(ユーザーID)・GID(グループID)・所属グループを表示するコマンド。" },
-  { task: "新規作成するファイルのデフォルトパーミッションから書き込み権限を除外する設定値を表示する", answers: ["umask"], hint: "umask", level: 3,
+  { task: "新規作成するファイルのデフォルトパーミッションから権限を除外する現在の設定値を表示する", answers: ["umask"], hint: "umask", level: 3,
     output: "0022",
     explain: "umaskは新規作成するファイル/ディレクトリのデフォルトパーミッションから、どの権限を除外するかを設定する値。" },
   { task: "PID 1234 のプロセスの優先度を低くして実行し直す", answers: ["renice 10 1234"], hint: "renice", level: 3,
