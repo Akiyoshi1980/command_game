@@ -250,6 +250,19 @@
     }
     .output, .explain { font-size: 0.8rem; }
   }
+  .fsTree {
+    background: #060805;
+    border: 1px solid var(--dim);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    font-size: 0.85rem;
+    min-height: 60px;
+  }
+  .fsNode { white-space: pre; line-height: 1.5; }
+  .fsDir { color: #7fd1ff; }
+  .fsFile { color: var(--text); }
+  .fsLink { color: #ffcc33; }
 </style>
 </head>
 <body>
@@ -262,6 +275,7 @@
     <div id="levelChoices"></div>
     <button id="reviewFavBtn" class="levelBtn" style="display:none;"></button>
     <button id="manageExcludeBtn" class="levelBtn" style="display:none;"></button>
+    <button id="openTreeBtn" class="levelBtn"><span class="name">ファイルツリーで体験する</span>コマンドで実際にファイル/フォルダが変化する様子を見ながら練習</button>
   </div>
 
   <div class="terminal" id="excludeScreen" style="display:none;">
@@ -295,6 +309,25 @@
       <button id="hintBtn">ヒント</button>
       <button id="skipBtn">スキップ</button>
       <button id="nextBtn" style="display:none;">次へ &gt;&gt;</button>
+    </div>
+  </div>
+
+  <div class="terminal" id="treeScreen" style="display:none;">
+    <div class="task">
+      <span class="taskMain">ファイルツリーで体験するモード</span>
+      <button id="treeBackBtn" style="margin:0; padding:4px 10px; font-size:0.8rem;">タイトルに戻る</button>
+    </div>
+    <div class="fsTree" id="fsTree"></div>
+    <div class="task"><span class="taskMain"><span id="tTaskText">読み込み中...</span></span></div>
+    <div class="promptline">
+      <span>$</span>
+      <input id="tAnswer" type="text" autocomplete="off" spellcheck="false" placeholder="コマンドを入力...">
+    </div>
+    <div class="feedback" id="tFeedback"></div>
+    <div>
+      <button id="tHintBtn">ヒント</button>
+      <button id="tResetBtn">ツリーをリセット</button>
+      <button id="tNextBtn" style="display:none;">次へ &gt;&gt;</button>
     </div>
   </div>
 
@@ -939,6 +972,135 @@ function closeExcludeScreen() {
 
 document.getElementById("manageExcludeBtn").addEventListener("click", openExcludeScreen);
 document.getElementById("closeExcludeBtn").addEventListener("click", closeExcludeScreen);
+
+const TREE_QUESTIONS = [
+  { task: "現在のディレクトリのファイル一覧を表示する", answers: ["ls", "ls -a", "ls -la"],
+    hint: "ls", apply: fs => {} },
+  { task: "'docs' という名前のディレクトリを作成する", answers: ["mkdir docs"],
+    hint: "mkdir", apply: fs => { if (!fsFind(fs, "docs")) fs.children.push({ type: "dir", name: "docs", children: [] }); } },
+  { task: "'memo.txt' という空のファイルを作成する", answers: ["touch memo.txt"],
+    hint: "touch", apply: fs => { if (!fsFind(fs, "memo.txt")) fs.children.push({ type: "file", name: "memo.txt" }); } },
+  { task: "'a.txt' を 'b.txt' という名前でコピーする", answers: ["cp a.txt b.txt"],
+    hint: "cp 元 先", apply: fs => { if (fsFind(fs, "a.txt") && !fsFind(fs, "b.txt")) fs.children.push({ type: "file", name: "b.txt" }); } },
+  { task: "'b.txt' を 'c.txt' という名前に変更する", answers: ["mv b.txt c.txt"],
+    hint: "mv 元 先", apply: fs => { const f = fsFind(fs, "b.txt"); if (f && !fsFind(fs, "c.txt")) f.name = "c.txt"; } },
+  { task: "'c.txt' を削除する", answers: ["rm c.txt"],
+    hint: "rm", apply: fs => { const i = fs.children.findIndex(c => c.name === "c.txt"); if (i >= 0) fs.children.splice(i, 1); } },
+  { task: "'a.txt' へのシンボリックリンク 'link.txt' を作成する", answers: ["ln -s a.txt link.txt"],
+    hint: "ln -s 元 リンク名", apply: fs => { if (fsFind(fs, "a.txt") && !fsFind(fs, "link.txt")) fs.children.push({ type: "link", name: "link.txt", target: "a.txt" }); } },
+  { task: "中身が空の 'docs' ディレクトリを削除する", answers: ["rmdir docs"],
+    hint: "rmdir", apply: fs => { const i = fs.children.findIndex(c => c.name === "docs"); if (i >= 0 && fs.children[i].type === "dir" && fs.children[i].children.length === 0) fs.children.splice(i, 1); } },
+  { task: "'memo.txt' を削除する", answers: ["rm memo.txt"],
+    hint: "rm", apply: fs => { const i = fs.children.findIndex(c => c.name === "memo.txt"); if (i >= 0) fs.children.splice(i, 1); } },
+];
+
+let treeFs = null;
+let treeQueue = [];
+let treeCurrent = null;
+let treeAwaitingNext = false;
+
+function fsFind(dir, name) {
+  return dir.children.find(c => c.name === name);
+}
+
+function resetTreeFs() {
+  treeFs = { type: "dir", name: "~", children: [
+    { type: "file", name: "a.txt" },
+    { type: "file", name: "notes.txt" },
+  ] };
+}
+
+function renderTreeNodes(dir, depth) {
+  let html = "";
+  const sorted = dir.children.slice().sort((a, b) => {
+    if (a.type === "dir" && b.type !== "dir") return -1;
+    if (a.type !== "dir" && b.type === "dir") return 1;
+    return a.name.localeCompare(b.name);
+  });
+  sorted.forEach(c => {
+    const indent = "　".repeat(depth);
+    if (c.type === "dir") {
+      html += '<div class="fsNode fsDir">' + indent + "📁 " + escapeHtml(c.name) + "/</div>";
+      html += renderTreeNodes(c, depth + 1);
+    } else if (c.type === "link") {
+      html += '<div class="fsNode fsLink">' + indent + "🔗 " + escapeHtml(c.name) + " -> " + escapeHtml(c.target) + "</div>";
+    } else {
+      html += '<div class="fsNode fsFile">' + indent + "📄 " + escapeHtml(c.name) + "</div>";
+    }
+  });
+  return html;
+}
+
+function renderTreeFs() {
+  document.getElementById("fsTree").innerHTML = '<div class="fsNode fsDir">📁 ~/</div>' + renderTreeNodes(treeFs, 1);
+}
+
+function pickTreeQuestion() {
+  if (treeQueue.length === 0) treeQueue = shuffle(TREE_QUESTIONS);
+  treeCurrent = treeQueue.shift();
+  treeAwaitingNext = false;
+  setAnnotatedText("tTaskText", treeCurrent.task);
+  document.getElementById("tFeedback").textContent = "";
+  document.getElementById("tFeedback").className = "feedback";
+  document.getElementById("tNextBtn").style.display = "none";
+  document.getElementById("tAnswer").disabled = false;
+  document.getElementById("tAnswer").value = "";
+  document.getElementById("tAnswer").focus();
+}
+
+function checkTree() {
+  if (treeAwaitingNext) return;
+  const val = normalize(document.getElementById("tAnswer").value);
+  const ok = treeCurrent.answers.some(a => normalize(a) === val);
+  const fb = document.getElementById("tFeedback");
+  if (ok) {
+    treeCurrent.apply(treeFs);
+    renderTreeFs();
+    fb.textContent = "正解！ -> " + treeCurrent.answers[0];
+    fb.className = "feedback ok";
+    treeAwaitingNext = true;
+    document.getElementById("tAnswer").disabled = true;
+    document.getElementById("tNextBtn").style.display = "inline-block";
+  } else {
+    fb.textContent = "不正解。正解例: " + treeCurrent.answers[0];
+    fb.className = "feedback bad";
+  }
+}
+
+function openTreeScreen() {
+  document.getElementById("startScreen").style.display = "none";
+  document.getElementById("treeScreen").style.display = "block";
+  resetTreeFs();
+  renderTreeFs();
+  treeQueue = shuffle(TREE_QUESTIONS);
+  pickTreeQuestion();
+}
+
+function closeTreeScreen() {
+  document.getElementById("treeScreen").style.display = "none";
+  document.getElementById("startScreen").style.display = "block";
+}
+
+document.getElementById("openTreeBtn").addEventListener("click", openTreeScreen);
+document.getElementById("treeBackBtn").addEventListener("click", closeTreeScreen);
+document.getElementById("tResetBtn").addEventListener("click", () => {
+  resetTreeFs();
+  renderTreeFs();
+});
+document.getElementById("tNextBtn").addEventListener("click", pickTreeQuestion);
+document.getElementById("tHintBtn").addEventListener("click", () => {
+  document.getElementById("tFeedback").innerHTML = "ヒント: " + annotateTerms(treeCurrent.hint);
+  document.getElementById("tFeedback").className = "feedback";
+});
+document.getElementById("tAnswer").addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    e.stopPropagation();
+    checkTree();
+  }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && treeAwaitingNext) pickTreeQuestion();
+});
 
 function renderLevelChoices() {
   const box = document.getElementById("levelChoices");
