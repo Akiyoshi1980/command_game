@@ -726,7 +726,7 @@ function buildPool() {
   if (reviewMode) {
     pool = QUESTIONS.filter(q => favorites.has(q.id) && !solved.has(q) && !excluded.has(q.id));
   } else {
-    pool = QUESTIONS.filter(q => q.level <= level && !solved.has(q) && !excluded.has(q.id));
+    pool = QUESTIONS.filter(q => q.level === level && !solved.has(q) && !excluded.has(q.id));
   }
   queue = queue.filter(q => pool.includes(q));
 }
@@ -768,12 +768,6 @@ function setScore(n) {
   if (score > high) {
     saveHigh(score);
     document.getElementById("high").textContent = score;
-  }
-  const newLevel = score >= 24 ? 4 : score >= 16 ? 3 : score >= 8 ? 2 : 1;
-  if (newLevel !== level) {
-    level = newLevel;
-    document.getElementById("level").textContent = level;
-    buildPool();
   }
 }
 
@@ -869,16 +863,16 @@ document.getElementById("excludeBtn").addEventListener("click", () => {
 });
 
 const LEVEL_INFO = [
-  { level: 1, name: "Lv1 基本操作", desc: "ls / cd / mkdir などファイル操作の基本", baseScore: 0 },
-  { level: 2, name: "Lv2 検索・権限", desc: "grep / find / chmod / ps など", baseScore: 8 },
-  { level: 3, name: "Lv3 応用操作", desc: "パイプ・リダイレクト・tar・kill など", baseScore: 16 },
-  { level: 4, name: "Lv4 高度な操作", desc: "sed / awk / ssh / curl など", baseScore: 24 },
+  { level: 1, name: "Lv1 基本操作", desc: "ls / cd / mkdir などファイル操作の基本" },
+  { level: 2, name: "Lv2 検索・権限", desc: "grep / find / chmod / ps など" },
+  { level: 3, name: "Lv3 応用操作", desc: "パイプ・リダイレクト・tar・kill など" },
+  { level: 4, name: "Lv4 高度な操作", desc: "sed / awk / ssh / curl など" },
 ];
 
-function startGame(chosenLevel, baseScore) {
+function startGame(chosenLevel) {
   reviewMode = false;
   level = chosenLevel;
-  score = baseScore;
+  score = 0;
   solved.clear();
   document.getElementById("score").textContent = score;
   document.getElementById("level").textContent = level;
@@ -1108,7 +1102,7 @@ function renderLevelChoices() {
     const btn = document.createElement("button");
     btn.className = "levelBtn";
     btn.innerHTML = '<span class="name">' + info.name + '</span>' + info.desc;
-    btn.addEventListener("click", () => startGame(info.level, info.baseScore));
+    btn.addEventListener("click", () => startGame(info.level));
     box.appendChild(btn);
   });
   document.getElementById("reviewFavBtn").addEventListener("click", startReview);
