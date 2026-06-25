@@ -326,6 +326,7 @@
       <input id="tAnswer" type="text" autocomplete="off" spellcheck="false" placeholder="コマンドを入力...">
     </div>
     <div class="feedback" id="tFeedback"></div>
+    <div class="output" id="tOutput"><span class="label">実行結果(模擬)</span><span id="tOutputText"></span></div>
     <div>
       <button id="tHintBtn">ヒント</button>
       <button id="tResetBtn">ツリーをリセット</button>
@@ -971,7 +972,7 @@ document.getElementById("closeExcludeBtn").addEventListener("click", closeExclud
 
 const TREE_QUESTIONS = [
   { task: "現在のディレクトリのファイル一覧を表示する", answers: ["ls", "ls -a", "ls -la"],
-    hint: "ls", apply: fs => {} },
+    hint: "ls", apply: fs => {}, output: fs => fs.children.map(c => c.name).join("  ") },
   { task: "'docs' という名前のディレクトリを作成する", answers: ["mkdir docs"],
     hint: "mkdir", apply: fs => { if (!fsFind(fs, "docs")) fs.children.push({ type: "dir", name: "docs", children: [] }); } },
   { task: "'memo.txt' という空のファイルを作成する", answers: ["touch memo.txt"],
@@ -1038,6 +1039,7 @@ function pickTreeQuestion() {
   setAnnotatedText("tTaskText", treeCurrent.task);
   document.getElementById("tFeedback").textContent = "";
   document.getElementById("tFeedback").className = "feedback";
+  document.getElementById("tOutput").style.display = "none";
   document.getElementById("tNextBtn").style.display = "none";
   document.getElementById("tAnswer").disabled = false;
   document.getElementById("tAnswer").value = "";
@@ -1054,6 +1056,10 @@ function checkTree() {
     renderTreeFs();
     fb.textContent = "正解！ -> " + treeCurrent.answers[0];
     fb.className = "feedback ok";
+    if (treeCurrent.output) {
+      document.getElementById("tOutputText").textContent = treeCurrent.output(treeFs);
+      document.getElementById("tOutput").style.display = "block";
+    }
     treeAwaitingNext = true;
     document.getElementById("tAnswer").disabled = true;
     document.getElementById("tNextBtn").style.display = "inline-block";
