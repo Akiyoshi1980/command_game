@@ -1032,7 +1032,7 @@ function renderTreeFs() {
 }
 
 function pickTreeQuestion() {
-  if (treeQueue.length === 0) treeQueue = shuffle(TREE_QUESTIONS);
+  if (treeQueue.length === 0) treeQueue = TREE_QUESTIONS.slice();
   treeCurrent = treeQueue.shift();
   treeAwaitingNext = false;
   setAnnotatedText("tTaskText", treeCurrent.task);
@@ -1068,7 +1068,7 @@ function openTreeScreen() {
   document.getElementById("treeScreen").style.display = "block";
   resetTreeFs();
   renderTreeFs();
-  treeQueue = shuffle(TREE_QUESTIONS);
+  treeQueue = TREE_QUESTIONS.slice();
   pickTreeQuestion();
 }
 
@@ -1082,6 +1082,8 @@ document.getElementById("treeBackBtn").addEventListener("click", closeTreeScreen
 document.getElementById("tResetBtn").addEventListener("click", () => {
   resetTreeFs();
   renderTreeFs();
+  treeQueue = TREE_QUESTIONS.slice();
+  pickTreeQuestion();
 });
 document.getElementById("tNextBtn").addEventListener("click", pickTreeQuestion);
 document.getElementById("tHintBtn").addEventListener("click", () => {
