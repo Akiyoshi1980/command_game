@@ -329,7 +329,6 @@
     <div class="output" id="tOutput"><span class="label">実行結果(模擬)</span><span id="tOutputText"></span></div>
     <div>
       <button id="tHintBtn">ヒント</button>
-      <button id="tResetBtn">ツリーをリセット</button>
       <button id="tNextBtn" style="display:none;">次へ &gt;&gt;</button>
     </div>
   </div>
@@ -1033,7 +1032,10 @@ function renderTreeFs() {
 }
 
 function pickTreeQuestion() {
-  if (treeQueue.length === 0) treeQueue = TREE_QUESTIONS.slice();
+  if (treeQueue.length === 0) {
+    showTreeClear();
+    return;
+  }
   treeCurrent = treeQueue.shift();
   treeAwaitingNext = false;
   setAnnotatedText("tTaskText", treeCurrent.task);
@@ -1044,6 +1046,15 @@ function pickTreeQuestion() {
   document.getElementById("tAnswer").disabled = false;
   document.getElementById("tAnswer").value = "";
   document.getElementById("tAnswer").focus();
+}
+
+function showTreeClear() {
+  document.getElementById("tTaskText").textContent = "全問クリア！おめでとうございます！";
+  document.getElementById("tFeedback").textContent = "";
+  document.getElementById("tOutput").style.display = "none";
+  document.getElementById("tNextBtn").style.display = "none";
+  document.getElementById("tAnswer").disabled = true;
+  document.getElementById("tHintBtn").disabled = true;
 }
 
 function checkTree() {
@@ -1072,6 +1083,7 @@ function checkTree() {
 function openTreeScreen() {
   document.getElementById("startScreen").style.display = "none";
   document.getElementById("treeScreen").style.display = "block";
+  document.getElementById("tHintBtn").disabled = false;
   resetTreeFs();
   renderTreeFs();
   treeQueue = TREE_QUESTIONS.slice();
@@ -1085,12 +1097,6 @@ function closeTreeScreen() {
 
 document.getElementById("openTreeBtn").addEventListener("click", openTreeScreen);
 document.getElementById("treeBackBtn").addEventListener("click", closeTreeScreen);
-document.getElementById("tResetBtn").addEventListener("click", () => {
-  resetTreeFs();
-  renderTreeFs();
-  treeQueue = TREE_QUESTIONS.slice();
-  pickTreeQuestion();
-});
 document.getElementById("tNextBtn").addEventListener("click", pickTreeQuestion);
 document.getElementById("tHintBtn").addEventListener("click", () => {
   document.getElementById("tFeedback").innerHTML = "ヒント: " + annotateTerms(treeCurrent.hint);
