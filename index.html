@@ -582,6 +582,31 @@ const QUESTIONS = [
   { task: "'date' コマンドを2秒おきに実行し続けて画面に表示する", answers: ["watch -n 2 date"], hint: "watch -n 秒数", level: 5,
     output: "Every 2.0s: date\n\n2026-06-26 12:00:00",
     explain: "watchは指定したコマンドを一定間隔で繰り返し実行し、画面を更新し続けるコマンド。ディスク容量やプロセス状況の変化を監視したい時に便利。" },
+
+  { task: "拡張子が'.txt'の全ファイルを 'docs' ディレクトリへまとめてコピーする", answers: ["cp *.txt docs/", "cp *.txt docs"], hint: "cp *.拡張子 先", level: 6,
+    output: "(出力なし。'.txt'の全ファイルがdocsにコピーされる)",
+    explain: "'*'はシェルが展開して、その場で条件に合う全ファイル名に置き換えてからコマンドに渡す。1つずつコピーする手間がなくなる。" },
+  { task: "拡張子が'.log'の全ファイルを一括で削除する", answers: ["rm *.log"], hint: "rm *.拡張子", level: 6,
+    output: "(出力なし。'.log'で終わる全ファイルが削除される)",
+    explain: "ワイルドカード'*'で対象を一括指定できる。ただし削除は元に戻せないため、'ls *.log'で対象を確認してから実行すると安全。" },
+  { task: "カレントディレクトリ以下にある拡張子'.tmp'の全ファイルを、findを使って一括削除する", answers: ["find . -name \"*.tmp\" -delete", "find . -name '*.tmp' -delete"], hint: "find . -name パターン -delete", level: 6,
+    output: "(出力なし。サブディレクトリも含めて'.tmp'ファイルが全て削除される)",
+    explain: "findは条件(-name)に合うファイルを再帰的に探し、'-delete'オプションでそのまま削除まで行える。サブディレクトリの奥深くにあるファイルもまとめて処理できるのが'rm *.tmp'との違い。" },
+  { task: "'dir' ディレクトリとその中身全てのパーミッションを755に一括変更する", answers: ["chmod -R 755 dir"], hint: "chmod -R", level: 6,
+    output: "(出力なし。dir以下の全ファイル/ディレクトリの権限が755になる)",
+    explain: "'-R'はrecursive(再帰的)。1階層だけでなく、ディレクトリの中身全部に対して同じ変更を一括適用する。" },
+  { task: "'dir' ディレクトリとその中身全ての所有者を 'alice' に一括変更する", answers: ["chown -R alice dir"], hint: "chown -R", level: 6,
+    output: "(出力なし。dir以下の全ファイル/ディレクトリの所有者がaliceになる)",
+    explain: "chownも'-R'を付けることで、ディレクトリ内の全てのファイル・サブディレクトリに再帰的に所有者変更を適用できる。" },
+  { task: "拡張子'.txt'の全ファイルに対して、内容の'foo'を'bar'に一括置換し、ファイル自体を書き換える", answers: ["sed -i 's/foo/bar/g' *.txt"], hint: "sed -i 's/旧/新/g' *.拡張子", level: 6,
+    output: "(出力なし。'.txt'の全ファイルの内容が直接書き換わる)",
+    explain: "通常のsedは結果を画面に表示するだけだが、'-i'(in-place)を付けるとファイルの内容そのものを書き換える。複数ファイルをまとめて一括置換できるのが強み。" },
+  { task: "カレントディレクトリ以下から、最終更新が30日以上前のファイルをまとめて削除する", answers: ["find . -mtime +30 -delete"], hint: "find . -mtime +日数 -delete", level: 6,
+    output: "(出力なし。30日以上更新されていないファイルが一括削除される)",
+    explain: "'-mtime +30'は「最終更新から30日より前」という条件。古いログや一時ファイルを定期的に自動整理するスクリプトでよく使われる組み合わせ。" },
+  { task: "拡張子'.txt'の全ファイルをまとめて 'archive.zip' という1つのファイルに圧縮する", answers: ["zip archive.zip *.txt"], hint: "zip 出力名 *.拡張子", level: 6,
+    output: "  adding: a.txt (deflated 10%)\n  adding: b.txt (deflated 8%)",
+    explain: "zipは複数ファイルを1つの圧縮ファイルにまとめるコマンド。ワイルドカードと組み合わせることで、該当する全ファイルを一度に圧縮できる。" },
 ];
 
 QUESTIONS.forEach((q, i) => { q.id = i; });
@@ -919,6 +944,7 @@ const LEVEL_INFO = [
   { level: 3, name: "Lv3 応用操作", desc: "パイプ・リダイレクト・tar・kill など" },
   { level: 4, name: "Lv4 高度な操作", desc: "sed / awk / ssh / curl など" },
   { level: 5, name: "Lv5 便利な小技", desc: "!! / cd - / watch など作業を楽にするコマンド" },
+  { level: 6, name: "Lv6 一括処理の小技", desc: "ワイルドカードやfind/sed -iでまとめて処理する" },
 ];
 
 function startGame(chosenLevel) {
