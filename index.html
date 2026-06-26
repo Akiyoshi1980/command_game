@@ -546,7 +546,7 @@ const QUESTIONS = [
     output: "(直前に停止/バックグラウンド化したジョブがフォアグラウンドで再開される)",
     explain: "fgはforegroundの略。Ctrl+Zで停止したジョブや'&'でバックグラウンド化したジョブをフォアグラウンドに戻す。" },
   { task: "'nginx' サービスの稼働状況を確認する", answers: ["systemctl status nginx"], hint: "systemctl status", level: 4,
-    output: "● nginx.service - A high performance web server\n   Active: active (running)",
+    output: "● nginx.service - A high performance web server\n   Loaded: loaded (/lib/systemd/system/nginx.service; enabled)\n   Active: active (running) since Mon 2026-06-23 10:00:00 JST\n Main PID: 900 (nginx)\n    Tasks: 3 (limit: 4683)\n   Memory: 5.2M\n   CGroup: /system.slice/nginx.service",
     explain: "systemctlはsystemd(サービス管理の仕組み)を操作するコマンド。'status'でサービスの起動状態を確認できる。" },
   { task: "'nginx' サービスのログを表示する", answers: ["journalctl -u nginx"], hint: "journalctl -u", level: 4,
     output: "Jun 23 10:00:00 myhost systemd[1]: Started nginx.service.\nJun 23 10:00:00 myhost nginx[900]: nginx started successfully\nJun 23 10:05:12 myhost nginx[900]: 192.168.1.10 - GET /index.html 200",
