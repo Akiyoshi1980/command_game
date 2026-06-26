@@ -592,6 +592,8 @@ const GLOSSARY = {
   "ソケット": "ネットワーク通信の接続点。IPアドレスとポート番号の組み合わせで識別される。",
   "サービス": "OS上で裏側(バックグラウンド)で動き続けるプログラム。Webサーバーやデータベースなど、常時起動して要求に応えるソフトウェアを指す。systemctlなどで起動・停止・状態確認を行う。",
   "nginx": "代表的なWebサーバーソフトウェアの一つ。ブラウザなどからのHTTPリクエストを受け取りWebページを返したり、他のサーバーへリクエストを中継(リバースプロキシ)したりする役割を持つ。軽量・高速に多数の同時接続を処理できる。",
+  "TCP": "インターネット通信で使われる代表的な通信方式の一つ。データの送達確認や順序保証を行い、信頼性の高い通信を実現する。Webやメールなど多くの通信で使われる。",
+  "リスニング": "プログラムが特定のポートで通信を「待ち受けている」状態。クライアントからの接続要求が来るのを待っている状態を指す。",
 };
 
 const GLOSSARY_TERMS = Object.keys(GLOSSARY).sort((a, b) => b.length - a.length);
@@ -742,6 +744,23 @@ function normalize(s) {
   return s.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
+function normalizeFlagOrder(s) {
+  return s.split(" ").map(tok => {
+    if (/^-[a-z]+$/.test(tok)) {
+      return "-" + tok.slice(1).split("").sort().join("");
+    }
+    return tok;
+  }).join(" ");
+}
+
+function answerMatches(answers, val) {
+  const normVal = normalizeFlagOrder(val);
+  return answers.some(a => {
+    const normA = normalize(a);
+    return normA === val || normalizeFlagOrder(normA) === normVal;
+  });
+}
+
 let awaitingNext = false;
 let wrongAttempted = false;
 
@@ -781,7 +800,7 @@ function setScore(n) {
 function check() {
   if (awaitingNext) return;
   const val = normalize(document.getElementById("answer").value);
-  const ok = current.answers.some(a => normalize(a) === val);
+  const ok = answerMatches(current.answers, val);
   const fb = document.getElementById("feedback");
   if (current.explain) {
     const exBox = document.getElementById("explain");
@@ -1083,7 +1102,7 @@ function showTreeClear() {
 function checkTree() {
   if (treeAwaitingNext) return;
   const val = normalize(document.getElementById("tAnswer").value);
-  const ok = treeCurrent.answers.some(a => normalize(a) === val);
+  const ok = answerMatches(treeCurrent.answers, val);
   const fb = document.getElementById("tFeedback");
   if (ok) {
     treeCurrent.apply(treeFs);
