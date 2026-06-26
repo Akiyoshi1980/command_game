@@ -549,7 +549,7 @@ const QUESTIONS = [
     output: "● nginx.service - A high performance web server\n   Active: active (running)",
     explain: "systemctlはsystemd(サービス管理の仕組み)を操作するコマンド。'status'でサービスの起動状態を確認できる。" },
   { task: "'nginx' サービスのログを表示する", answers: ["journalctl -u nginx"], hint: "journalctl -u", level: 4,
-    output: "Jun 23 10:00:00 myhost nginx[900]: started",
+    output: "Jun 23 10:00:00 myhost systemd[1]: Started nginx.service.\nJun 23 10:00:00 myhost nginx[900]: nginx started successfully\nJun 23 10:05:12 myhost nginx[900]: 192.168.1.10 - GET /index.html 200",
     explain: "journalctlはsystemdが記録したログ(journal)を表示するコマンド。'-u'でサービス単位を指定する。" },
   { task: "現在開いている全てのTCPリスニングポートを一覧表示する", answers: ["ss -tulpn"], hint: "ss -tulpn", level: 4,
     output: "Netid State  Local Address:Port\ntcp   LISTEN 0.0.0.0:80",
