@@ -557,6 +557,31 @@ const QUESTIONS = [
   { task: "実行中のDockerコンテナを一覧表示する", answers: ["docker ps"], hint: "docker ps", level: 4,
     output: "CONTAINER ID  IMAGE   STATUS\nabc123        nginx   Up 2 hours",
     explain: "dockerはコンテナを操作するコマンド。'ps'は実行中のコンテナの一覧を表示するサブコマンド。" },
+
+  { task: "直前に実行したコマンドをもう一度実行する", answers: ["!!"], hint: "!!", level: 5,
+    output: "(直前のコマンドがそのまま再実行される)",
+    explain: "'!!'は直前に実行したコマンド全体を呼び出す記法。'sudo !!'のように、権限不足で失敗したコマンドの頭にsudoだけ付けて再実行する、という使い方が特に便利。" },
+  { task: "ひとつ前にいたディレクトリに戻る", answers: ["cd -"], hint: "cd -", level: 5,
+    output: "/home/user/projects",
+    explain: "'cd -'は直前にいたディレクトリに戻る。2つのディレクトリを行き来しながら作業するときに、フルパスを打たずに済む。" },
+  { task: "ネストした 'a/b/c' というディレクトリを、親がなくても一度に作成する", answers: ["mkdir -p a/b/c"], hint: "mkdir -p", level: 5,
+    output: "(出力なし。a、a/b、a/b/cが全て作成される)",
+    explain: "'-p'はparents(親ディレクトリ)の意味。途中の'a'や'a/b'が存在しなくてもエラーにならず、必要な階層をまとめて作成してくれる。" },
+  { task: "'log.txt' の更新をリアルタイムで追跡し続ける", answers: ["tail -f log.txt"], hint: "tail -f", level: 5,
+    output: "(ファイルに追記されるたびに新しい行が画面に表示され続ける。Ctrl+Cで終了)",
+    explain: "'-f'はfollowの意味。ログファイルなど追記され続けるファイルを監視し続けたいときによく使う(サーバーのログを見ながら作業する時の定番)。" },
+  { task: "カレントディレクトリ直下の各ファイル・フォルダのサイズを一覧で確認する", answers: ["du -sh *"], hint: "du -sh *", level: 5,
+    output: "120M\tdocs\n4.0K\tnote.txt\n8.0K\tapp.js",
+    explain: "'*'はシェルが展開してカレントディレクトリの全項目に置き換える。'du -sh ディレクトリ全体'だと合計しか分からないが、'*'を使うことで項目ごとのサイズを一度に比較できる。" },
+  { task: "'note.txt' の絶対パスを確認する", answers: ["realpath note.txt"], hint: "realpath", level: 5,
+    output: "/home/user/projects/note.txt",
+    explain: "相対パスやシンボリックリンクを指定しても、実際の絶対パスに変換して表示してくれる。スクリプトに絶対パスを書きたい時などに便利。" },
+  { task: "コマンド履歴の中から 'ssh' を含むものだけを検索する", answers: ["history | grep ssh"], hint: "history | grep", level: 5,
+    output: "  42  ssh user@remote.example.com\n  88  ssh-keygen -t ed25519",
+    explain: "historyの出力をgrepにパイプで渡すことで、過去に打った長いコマンドをキーワードで素早く見つけられる。同じコマンドを何度も打ち直す手間が減る。" },
+  { task: "'date' コマンドを2秒おきに実行し続けて画面に表示する", answers: ["watch -n 2 date"], hint: "watch -n 秒数", level: 5,
+    output: "Every 2.0s: date\n\n2026-06-26 12:00:00",
+    explain: "watchは指定したコマンドを一定間隔で繰り返し実行し、画面を更新し続けるコマンド。ディスク容量やプロセス状況の変化を監視したい時に便利。" },
 ];
 
 QUESTIONS.forEach((q, i) => { q.id = i; });
@@ -893,6 +918,7 @@ const LEVEL_INFO = [
   { level: 2, name: "Lv2 検索・権限", desc: "grep / find / chmod / ps など" },
   { level: 3, name: "Lv3 応用操作", desc: "パイプ・リダイレクト・tar・kill など" },
   { level: 4, name: "Lv4 高度な操作", desc: "sed / awk / ssh / curl など" },
+  { level: 5, name: "Lv5 便利な小技", desc: "!! / cd - / watch など作業を楽にするコマンド" },
 ];
 
 function startGame(chosenLevel) {
