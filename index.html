@@ -629,7 +629,7 @@ const QUESTIONS = [
   { task: "'apache' というユーザーの権限に切り替え、シェルを'/bin/bash'に指定して 'echo hello' を実行する", answers: ["su -s /bin/bash apache -c \"echo hello\"", "su -s /bin/bash apache -c 'echo hello'"], hint: "su -s シェル ユーザー -c \"コマンド\"", level: 7,
     output: "hello",
     explain: "suは別ユーザーに切り替えて実行するコマンド。'-s'で使うシェルを指定し、'-c'で1回だけ実行したいコマンドを渡す。Webサーバーの実行ユーザーが実際にファイルを読めるかなどを確認する時に使う。" },
-  { task: "現在のディレクトリ構造をツリー形式で表示する", answers: ["tree"], hint: "tree", level: 7,
+  { task: "現在のディレクトリ構造をツリー形式で表示する", answers: ["tree"], hint: "tree", level: 1,
     output: ".\n├── a.txt\n├── docs\n│   └── memo.txt\n└── notes.txt",
     explain: "treeはディレクトリの階層構造を見やすい木構造で表示するコマンド(標準では入っておらず追加インストールが必要な場合がある)。'ls -R'よりも全体像を把握しやすい。" },
 ];
