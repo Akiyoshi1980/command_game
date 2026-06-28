@@ -607,6 +607,31 @@ const QUESTIONS = [
   { task: "拡張子'.txt'の全ファイルをまとめて 'archive.zip' という1つのファイルに圧縮する", answers: ["zip archive.zip *.txt"], hint: "zip 出力名 *.拡張子", level: 6,
     output: "  adding: a.txt (deflated 10%)\n  adding: b.txt (deflated 8%)",
     explain: "zipは複数ファイルを1つの圧縮ファイルにまとめるコマンド。ワイルドカードと組み合わせることで、該当する全ファイルを一度に圧縮できる。" },
+
+  { task: "Apacheの設定ファイルに文法エラーがないかチェックする(再起動はしない)", answers: ["apachectl -t", "httpd -t"], hint: "apachectl -t", level: 7,
+    output: "Syntax OK",
+    explain: "'-t'はtest configurationの意味。設定ファイルを書き換えた後、実際に再起動する前にエラーがないか確認できる。エラーがあるまま再起動すると最悪サービスが止まってしまうため、本番運用では欠かせない確認ステップ。" },
+  { task: "Apacheを、通信中の接続を切らずに設定を再読み込みする", answers: ["apachectl graceful", "httpd -k graceful"], hint: "apachectl graceful", level: 7,
+    output: "(出力なし。既存の接続を維持したまま新しい設定が反映される)",
+    explain: "'graceful'は処理中のリクエストを中断させずに、新しい接続から新設定を適用する再読み込み方法。'restart'と違い、利用者に影響を与えずに設定変更を反映できる。" },
+  { task: "SSL証明書の自動更新が正常に動作するか、実際には更新せずに試す", answers: ["certbot renew --dry-run"], hint: "certbot renew --dry-run", level: 7,
+    output: "Congratulations, all simulated renewals succeeded",
+    explain: "'--dry-run'は実際の処理を行わず、手順が成功するかどうかだけを試すオプション。証明書の更新は失敗するとサイトがアクセスできなくなるため、本番更新の前に試すのが定石。" },
+  { task: "'example.com' のDNS設定(Aレコードなど)を調べる", answers: ["dig example.com"], hint: "dig ドメイン名", level: 7,
+    output: ";; ANSWER SECTION:\nexample.com.\t300\tIN\tA\t93.184.216.34",
+    explain: "digはDNSサーバーに問い合わせて、ドメイン名に対応するIPアドレスなどの情報を調べるコマンド。ドメインが正しい場所を向いているか確認する時に使う。" },
+  { task: "'config.php' に設定されているACL(拡張アクセス権限)を確認する", answers: ["getfacl config.php"], hint: "getfacl", level: 7,
+    output: "# file: config.php\n# owner: user\n# group: apache\nuser::rw-\ngroup::r--\nother::---",
+    explain: "getfaclはchmodの基本的な権限(所有者/グループ/その他)よりも細かい、特定ユーザー単位のアクセス制御(ACL)を確認するコマンド。通常の'ls -l'では見えない設定まで確認できる。" },
+  { task: "'config.php' までのパスに含まれる各ディレクトリの権限を順番に表示する", answers: ["namei -l config.php"], hint: "namei -l", level: 7,
+    output: "f: config.php\ndrwxr-xr-x root root /\ndrwxr-x--x user group dir\n-rw-r----- user group config.php",
+    explain: "namei -lはパスの途中にある全ディレクトリの権限を順に表示する。'config.php'自体の権限が正しくても、途中のディレクトリが緩いと別ユーザーから読めてしまうことがあり、その確認に使う。" },
+  { task: "'apache' というユーザーの権限で、あるPHPコマンドを実行してみる", answers: ["su -s /bin/bash apache -c \"php -r 'echo 1;'\""], hint: "su -s シェル ユーザー -c \"コマンド\"", level: 7,
+    output: "1",
+    explain: "suは別ユーザーに切り替えて実行するコマンド。'-s'で使うシェルを指定し、'-c'で1回だけ実行したいコマンドを渡す。Webサーバーの実行ユーザーが実際にファイルを読めるかなどを確認する時に使う。" },
+  { task: "現在のディレクトリ構造をツリー形式で表示する", answers: ["tree"], hint: "tree", level: 7,
+    output: ".\n├── a.txt\n├── docs\n│   └── memo.txt\n└── notes.txt",
+    explain: "treeはディレクトリの階層構造を見やすい木構造で表示するコマンド(標準では入っておらず追加インストールが必要な場合がある)。'ls -R'よりも全体像を把握しやすい。" },
 ];
 
 QUESTIONS.forEach((q, i) => { q.id = i; });
@@ -644,6 +669,9 @@ const GLOSSARY = {
   "nginx": "代表的なWebサーバーソフトウェアの一つ。ブラウザなどからのHTTPリクエストを受け取りWebページを返したり、他のサーバーへリクエストを中継(リバースプロキシ)したりする役割を持つ。軽量・高速に多数の同時接続を処理できる。",
   "TCP": "インターネット通信で使われる代表的な通信方式の一つ。データの送達確認や順序保証を行い、信頼性の高い通信を実現する。Webやメールなど多くの通信で使われる。",
   "リスニング": "プログラムが特定のポートで通信を「待ち受けている」状態。クライアントからの接続要求が来るのを待っている状態を指す。",
+  "ACL": "Access Control Listの略。通常のパーミッション(所有者/グループ/その他)よりも細かく、特定のユーザーやグループ単位でアクセス権を設定できる仕組み。",
+  "DNS": "Domain Name Systemの略。'example.com'のようなドメイン名と、実際の接続先IPアドレスを対応付ける仕組み。",
+  "SSL証明書": "Webサイトとの通信を暗号化(HTTPS化)するために使われる電子証明書。有効期限があり、定期的な更新が必要。",
 };
 
 const GLOSSARY_TERMS = Object.keys(GLOSSARY).sort((a, b) => b.length - a.length);
@@ -945,6 +973,7 @@ const LEVEL_INFO = [
   { level: 4, name: "Lv4 高度な操作", desc: "sed / awk / ssh / curl など" },
   { level: 5, name: "Lv5 便利な小技", desc: "!! / cd - / watch など作業を楽にするコマンド" },
   { level: 6, name: "Lv6 一括処理の小技", desc: "ワイルドカードやfind/sed -iでまとめて処理する" },
+  { level: 7, name: "Lv7 サーバー運用の実例", desc: "apachectl / certbot / dig / getfaclなど現場のコマンド" },
 ];
 
 function startGame(chosenLevel) {
