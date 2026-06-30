@@ -553,7 +553,7 @@ const QUESTIONS = [
   { task: "'app.js' というコマンドがどこにインストールされているか調べる", answers: ["which app.js"], hint: "which", level: 4,
     output: "/usr/local/bin/app.js",
     explain: "whichはPATHに登録されたディレクトリを検索し、指定したコマンドの実行ファイルの場所を表示する。" },
-  { task: "'src' ディレクトリの内容を 'backup' ディレクトリへ同期する", answers: ["rsync -av src backup"], hint: "rsync -av", level: 4,
+  { task: "'src' ディレクトリの内容を 'backup' ディレクトリへ、転送内容を詳細表示しながら同期する", answers: ["rsync -av src backup"], hint: "rsync -av", level: 4,
     output: "sending incremental file list\nsrc/app.js\n\nsent 1,024 bytes  received 35 bytes",
     explain: "rsyncはRemote SYNCの略。差分のみを転送してディレクトリ間を同期するコマンド。'-a'はarchive(属性保持)、'-v'はverbose(詳細表示)の指定。" },
   { task: "現在のユーザーのcrontab(定期実行設定)を編集する", answers: ["crontab -e"], hint: "crontab -e", level: 4,
